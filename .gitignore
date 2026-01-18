@@ -1,2 +1,14 @@
 venv
 .env
+uv.lock
+
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
