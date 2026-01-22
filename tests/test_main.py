@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app, get_service
-from app.schemas import RecommendationResponse
+from app.schemas.schemas import RecommendationResponse
 
 client = TestClient(app)
 

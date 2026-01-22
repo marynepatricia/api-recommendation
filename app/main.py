@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 
-from app.database.database import engine, Base, get_db
+from app.database import engine, Base, get_db
 from app.services import get_places_from_google
 from app.schemas import RecommendationResponse
 

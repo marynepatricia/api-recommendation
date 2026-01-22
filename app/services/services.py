@@ -1,7 +1,7 @@
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.config import GOOGLE_API_KEY
+from app.core import GOOGLE_API_KEY
 from app.schemas import RecommendationResponse, PlaceRecommendation
 from app.database.models import SearchHistory
 

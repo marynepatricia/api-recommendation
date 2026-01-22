@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, JSON, DateTime, Integer
 from datetime import datetime
-from app.database import Base
+from app.database.database import Base
 
 class SearchHistory(Base):
     __tablename__ = "search_history"
