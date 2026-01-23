@@ -1,2 +1,2 @@
-from .database import engine, Base, get_db 
+from .database import engine, Base, get_db, AsyncSessionLocal
 from .models import SearchHistory 

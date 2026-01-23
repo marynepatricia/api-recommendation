@@ -25,10 +25,10 @@ def test_get_recommendations_mocked():
             }
         ]
     }
-    async def mock_get_places(location: str):
+    async def mock_get_places(location: str, db=None):
         return mock_response
     
-    # Sobrescrita de Dependência: Dizet ao FastAPI para usar o nosso mock
+    # Sobrescrita de Dependência: Dizet ao FastAPI para usar o mock
     # em vez de chamar a função real que vai ao Google
     app.dependency_overrides[get_service] = lambda: mock_get_places
 
