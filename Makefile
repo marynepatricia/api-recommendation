@@ -11,3 +11,7 @@ run:
 # Comando para rodar os testes
 test:
 	uv run pytest
+
+# Comando para apagar dados do banco de dados
+clean-db:
+	docker compose exec db psql -U user -d recommendations -c "TRUNCATE TABLE search_history;"
