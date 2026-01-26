@@ -5,6 +5,7 @@ from app.core import GOOGLE_API_KEY
 from app.schemas import RecommendationResponse, PlaceRecommendation
 from app.database.models import SearchHistory
 
+
 async def get_places_from_google(localizacao: str, db: AsyncSession) -> RecommendationResponse:
     """
     Procura lugares no Google Places API com lógica de cache em PostgreSQL.
@@ -17,6 +18,8 @@ async def get_places_from_google(localizacao: str, db: AsyncSession) -> Recommen
 
     if cached_search:
         return RecommendationResponse(**cached_search.response_data)
+    
+    coords = await get_coordinates(localizacao)
 
     url = "https://places.googleapis.com/v1/places:searchText"
     
@@ -27,8 +30,17 @@ async def get_places_from_google(localizacao: str, db: AsyncSession) -> Recommen
     }
     
     payload = {
-        "textQuery": localizacao
+        "textQuery": f"Pontos turísticos em {localizacao}",
+        "maxResultCount": 10
     }
+
+    if coords:
+        payload["locationBias"] = {
+            "circle": {
+                "center": {"latitude": coords["lat"], "longitude": coords["lng"]},
+                "radius": 5000.0
+            }
+        }
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json=payload, headers=headers)
@@ -64,3 +76,20 @@ async def get_places_from_google(localizacao: str, db: AsyncSession) -> Recommen
     await db.commit()
 
     return final_response
+
+async def get_coordinates(address: str) -> dict:
+    """Transforma endereço em latitude/longitude usando Google Geocoding API."""
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": address,
+        "key": GOOGLE_API_KEY
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data["results"]:
+                location = data["results"][0]["geometry"]["location"]
+                return location # Retorna {'lat': -8.04, 'lng': -34.87}
+    return None
