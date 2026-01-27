@@ -1,25 +1,46 @@
 import httpx
+import unicodedata
+import re 
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core import GOOGLE_API_KEY
 from app.schemas import RecommendationResponse, PlaceRecommendation
 from app.database.models import SearchHistory
 
+def normalize_query(text: str) -> str:
+    """Transforma a frase numa chave única e normalizada para a cache."""
+    text = text.lower().strip()
+    
+    text = ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
+    
+    text = re.sub(r'[^\w\s]', '', text)
+    
+    words = text.split()
+    stopwords = {"em", "de", "do", "da", "no", "na", "para", "com"}
+    meaningful_words = [w for w in words if w not in stopwords]
+    
+    meaningful_words.sort()
+    
+    return "_".join(meaningful_words)
 
-async def get_places_from_google(localizacao: str, db: AsyncSession) -> RecommendationResponse:
+async def get_places_from_google(query_utilizador: str, db: AsyncSession) -> RecommendationResponse:
     """
-    Procura lugares no Google Places API com lógica de cache em PostgreSQL.
+    Procura lugares com lógica de cache baseada em chaves normalizadas.
     """
-    localizacao_norm = localizacao.lower().strip()
+    search_key = normalize_query(query_utilizador)
 
-    query = select(SearchHistory).where(SearchHistory.location == localizacao_norm)
+    query = select(SearchHistory).where(SearchHistory.search_query == search_key)
     result = await db.execute(query)
     cached_search = result.scalars().first()
 
     if cached_search:
         return RecommendationResponse(**cached_search.response_data)
     
-    coords = await get_coordinates(localizacao)
+    coords = await get_coordinates(query_utilizador)
 
     url = "https://places.googleapis.com/v1/places:searchText"
     
@@ -30,7 +51,7 @@ async def get_places_from_google(localizacao: str, db: AsyncSession) -> Recommen
     }
     
     payload = {
-        "textQuery": f"Pontos turísticos em {localizacao}",
+        "textQuery": query_utilizador,
         "maxResultCount": 10
     }
 
@@ -68,7 +89,7 @@ async def get_places_from_google(localizacao: str, db: AsyncSession) -> Recommen
     )
 
     new_cache_entry = SearchHistory(
-        location=localizacao_norm,
+        search_query=search_key,
         response_data=final_response.model_dump()
     )
     
@@ -91,5 +112,5 @@ async def get_coordinates(address: str) -> dict:
             data = response.json()
             if data["results"]:
                 location = data["results"][0]["geometry"]["location"]
-                return location # Retorna {'lat': -8.04, 'lng': -34.87}
+                return location 
     return None

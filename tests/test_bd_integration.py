@@ -19,7 +19,7 @@ async def test_database_recording_flow():
     async with AsyncSessionLocal() as db:
         # 1. Limpamos qualquer teste anterior para garantir um estado limpo
         from sqlalchemy import delete
-        await db.execute(delete(SearchHistory).where(SearchHistory.location == localizacao.lower()))
+        await db.execute(delete(SearchHistory).where(SearchHistory.search_query == localizacao.lower()))
         await db.commit() 
 
         # 2. Chamamos o serviço (ele vai tentar gravar no DB)
@@ -29,9 +29,9 @@ async def test_database_recording_flow():
             pass
 
         # 3. Verificamos se o registro foi criado no banco de dados
-        query = select(SearchHistory).where(SearchHistory.location == localizacao.lower())
+        query = select(SearchHistory).where(SearchHistory.search_query == localizacao.lower())
         result = await db.execute(query) 
         record = result.scalars().first() 
 
         assert record is not None, f"O registro para {localizacao} deveria ter sido gravado na base de dados."
-        assert record.location == localizacao.lower()
+        assert record.search_query == localizacao.lower()

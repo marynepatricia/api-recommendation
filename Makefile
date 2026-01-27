@@ -1,17 +1,22 @@
-.PHONY: run install test clean
+.PHONY: run stop build test clean-db install
 
-# Comando para instalar as dependências usando o uv
+# Instala dependências locais
 install:
 	uv sync
 
-# Comando para rodar a API
+# Sobe o ambiente Docker e mostra logs
 run:
-	uv run uvicorn app.main:app --reload
+	docker compose up -d --build
+	docker compose logs -f api
 
-# Comando para rodar os testes
+# Para os serviços
+stop:
+	docker compose down
+
+# Executa testes dentro do Docker
 test:
-	uv run pytest
+	docker compose run --rm api pytest
 
-# Comando para apagar dados do banco de dados
+# Limpa a tabela de cache
 clean-db:
-	docker compose exec db psql -U user -d recommendations -c "TRUNCATE TABLE search_history;"
+	docker compose run --rm db psql -U user -d recommendations -c "TRUNCATE TABLE search_history;"
