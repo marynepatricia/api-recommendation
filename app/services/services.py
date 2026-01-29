@@ -31,7 +31,20 @@ async def get_places_from_google(query_utilizador: str, db: AsyncSession) -> Rec
     """
     Procura lugares com lógica de cache baseada em chaves normalizadas.
     """
-    search_key = normalize_query(query_utilizador)
+
+    check_query = query_utilizador.lower()
+    
+    palavras_intencao = {
+        "restaurante", "hotel", "museu", "parque", "cafe", "bar", 
+        "comer", "visitar", "onde", "turismo", "ponto", "atração"
+    }
+    
+    if not any(p in check_query for p in palavras_intencao):
+        query_final_google = f"Pontos turísticos em {query_utilizador}"
+    else:
+        query_final_google = query_utilizador
+
+    search_key = normalize_query(query_final_google)
 
     query = select(SearchHistory).where(SearchHistory.search_query == search_key)
     result = await db.execute(query)
@@ -51,7 +64,7 @@ async def get_places_from_google(query_utilizador: str, db: AsyncSession) -> Rec
     }
     
     payload = {
-        "textQuery": query_utilizador,
+        "textQuery": query_final_google,
         "maxResultCount": 10
     }
 
@@ -82,6 +95,8 @@ async def get_places_from_google(query_utilizador: str, db: AsyncSession) -> Rec
             types=item.get("types", [])
         )
         processed_places.append(place)
+
+    processed_places.sort(key=lambda x: x.rating, reverse=True)
 
     final_response = RecommendationResponse(
         count=len(processed_places),
