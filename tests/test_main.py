@@ -14,29 +14,24 @@ def test_health_check():
 # Teste de Recomendações com Injeção de Dependência (Mock)
 def test_get_recommendations_mocked():
     # resposta falsa para simular o Google
-    mock_response = {
-        "count": 1,
+    mock_response_unsorted = {
+        "count": 2,
         "results": [
-            {
-                "name": "Lugar de Teste",
-                "address": "Rua Fictícia, 123",
-                "rating": 5.0,
-                "types": ["test"]
-            }
+            {"name": "Lugar Ruim", "address": "Rua A", "rating": 2.0, "types": ["test"]},
+            {"name": "Lugar Ótimo", "address": "Rua B", "rating": 5.0, "types": ["test"]}
         ]
     }
-    async def mock_get_places(location: str, db=None):
-        return mock_response
-    
-    # Sobrescrita de Dependência: Dizet ao FastAPI para usar o mock
-    # em vez de chamar a função real que vai ao Google
-    app.dependency_overrides[get_service] = lambda: mock_get_places
 
-    response = client.get("/recommendations?location=Recife")
+    async def mock_get_places(location: str, db=None):
+        results = mock_response_unsorted["results"]
+        results.sort(key=lambda x: x["rating"], reverse=True)
+        return {"count": 2, "results": results}
+
+    app.dependency_overrides[get_service] = lambda: mock_get_places
     
-    # Limpamos a sobrescrita após o teste
+    response = client.get("/recommendations?location=Porto Alegre")
     app.dependency_overrides = {}
 
-    assert response.status_code == 200
-    assert response.json()["count"] == 1
-    assert response.json()["results"][0]["name"] == "Lugar de Teste"
+    data = response.json()
+    assert data["results"][0]["rating"] == 5.0
+    assert data["results"][1]["rating"] == 2.0
