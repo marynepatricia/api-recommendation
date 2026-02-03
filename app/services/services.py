@@ -60,12 +60,12 @@ async def get_places_from_google(query_utilizador: str, db: AsyncSession) -> Rec
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": GOOGLE_API_KEY,
-        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.types"
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.rating,places.types"
     }
     
     payload = {
         "textQuery": query_final_google,
-        "maxResultCount": 10
+        "maxResultCount": 20
     }
 
     if coords:
@@ -86,15 +86,29 @@ async def get_places_from_google(query_utilizador: str, db: AsyncSession) -> Rec
 
     raw_places = data.get("places", [])
     processed_places = []
+    ids_vistos = set()
+    moradas_vistas = set()
 
     for item in raw_places:
-        place = PlaceRecommendation(
-            name=item.get("displayName", {}).get("text", "Nome indisponível"),
-            address=item.get("formattedAddress", "Endereço não encontrado"),
-            rating=item.get("rating", 0.0),
-            types=item.get("types", [])
-        )
-        processed_places.append(place)
+
+        if len(processed_places) >= 10:
+            break
+        
+        place_id = item.get("id")
+        morada = item.get("formattedAddress", "Endereço não encontrado")
+
+        morada_key = morada.lower().strip()
+
+        if place_id not in ids_vistos and morada_key not in moradas_vistas:
+            place = PlaceRecommendation(
+                name=item.get("displayName", {}).get("text", "Nome indisponível"),
+                address=item.get("formattedAddress", "Endereço não encontrado"),
+                rating=item.get("rating", 0.0),
+                types=item.get("types", [])
+            )
+            processed_places.append(place)
+            ids_vistos.add(place_id)
+            moradas_vistas.add(morada_key)
 
     processed_places.sort(key=lambda x: x.rating, reverse=True)
 

@@ -19,4 +19,4 @@ test:
 
 # Limpa a tabela de cache
 clean-db:
-	docker compose run --rm db psql -U user -d recommendations -c "TRUNCATE TABLE search_history;"
+	docker compose run --rm db psql -h db -U user -d recommendations -c "TRUNCATE TABLE search_history;"
