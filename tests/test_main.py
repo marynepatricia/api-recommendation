@@ -33,5 +33,8 @@ def test_get_recommendations_mocked():
     app.dependency_overrides = {}
 
     data = response.json()
+
+    print(f"\nResultados ordenados: {[r['name'] for r in data['results']]}")
+
     assert data["results"][0]["rating"] == 5.0
     assert data["results"][1]["rating"] == 2.0
