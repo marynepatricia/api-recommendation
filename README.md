@@ -1,6 +1,6 @@
 # 📍 API de Recomendação de Lugares
 
-Esta é uma API moderna desenvolvida com **FastAPI** que permite procurar recomendações de lugares (restaurantes, museus, parques, etc.) utilizando a **Google Places API**. O projeto foi estruturado seguindo boas práticas de programação, incluindo injeção de dependência para testes e contentorização com Docker.
+Esta é uma API desenvolvida com FastAPI que utiliza a Google Places API para sugerir locais (restaurantes, museus, etc.) com base numa localização. O projeto utiliza PostgreSQL para cache de pesquisas e Docker para facilitar o ambiente de desenvolvimento.
 
 ## 🚀 Funcionalidades
 
@@ -8,6 +8,12 @@ Esta é uma API moderna desenvolvida com **FastAPI** que permite procurar recome
 * **Health Check:** Endpoint para verificar se a API está online.
 * **Arquitetura Limpa:** Separação clara entre rotas, esquemas de dados (Pydantic) e serviços externos.
 * **Testes Automatizados:** Suite de testes com mocks para simular a API do Google sem gastar créditos.
+
+## 🚀 Novas Funcionalidades
+* **Cache Inteligente:** Grava os resultados no banco de dados para evitar chamadas repetidas à API do Google, poupando créditos.
+* **Gestão com UV:** Utiliza o gestor de pacotes uv para instalações ultra-rápidas.
+* **Dual Mode:** Suporte total para execução via Docker ou Localmente.
+* **Busca Normalizada:** Lógica que ignora acentos e preposições para garantir que "Restaurantes em Porto" e "restaurantes no porto" usem a mesma cache.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -20,73 +26,84 @@ Esta é uma API moderna desenvolvida com **FastAPI** que permite procurar recome
 
 ## 📂 Estrutura do Projeto
 
-```text
-├── app/
-│   ├── config.py      # Gestão de variáveis de ambiente
-│   ├── main.py        # Pontos de entrada (endpoints) da API
-│   ├── schemas.py     # Modelos de dados (Pydantic)
-│   ├── services.py    # Lógica de integração com a API do Google
+```├── app/
+│   ├── core/
+│   │   └── config.py      # Gestão de variáveis de ambiente e chaves API
+│   ├── database/
+│   │   ├── database.py    # Configuração da conexão assíncrona com PostgreSQL
+│   │   └── models.py      # Definição das tabelas do banco de dados (SQLAlchemy)
+│   ├── schemas/
+│   │   └── schemas.py     # Modelos de validação de dados (Pydantic)
+│   ├── services/
+│   │   └── services.py    # Lógica de negócio e integração com Google Places
+│   ├── main.py            # Ponto de entrada da API e definição de rotas
 │   └── __init__.py
 ├── tests/
-│   └── test_main.py   # Testes unitários e de integração
-├── Dockerfile         # Configuração da imagem Docker
-├── Makefile           # Atalhos para comandos comuns
-├── pyproject.toml     # Dependências do projeto
-└── .env               # Variáveis sensíveis (não incluído no Git)
+│   ├── test_main.py           # Testes de integração dos endpoints (com mocks)
+│   └── test_bd_integration.py # Testes de fluxo de gravação na base de dados
+├── Dockerfile                 # Configuração da imagem Docker otimizada com 'uv'
+├── docker-compose.yml         # Orquestração da API e da base de dados Postgres
+├── Makefile                   # Atalhos para comandos de desenvolvimento (Local/Docker)
+├── pyproject.toml             # Definição de dependências e metadados do projeto
+└── .env.example               # Modelo do arquivo .env
 ```
 
 ## ⚙️ Configuração Inicial
 
 1. Pré-requisitos
-* Ter o Python 3.12+ instalado.
-* Ter o uv instalado (recomendado).
-* Uma chave de API da Google Cloud (com a Places API ativada).
+* Python 3.12+: Versão base utilizada no projeto.
+* UV: Gestor de pacotes recomendado para rapidez e isolamento de ambientes.
+* Docker & Docker Compose: Necessários para subir a base de dados PostgreSQL e correr a aplicação em contentores.
+* Google Cloud API Key: Chave com as APIs Places e Geocoding ativadas.
 
 2. Variáveis de Ambiente
-* Cria um ficheiro chamado .env na raiz do projeto e adiciona a tua chave:
+* Cria um arquivo chamado .env na raiz do projeto e adiciona a tua chave:
 
 ```
-GOOGLE_API_KEY=a_tua_chave_aqui_sem_aspas
+GOOGLE_API_KEY=tua_chave_aqui
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/recommendations
 ```
 
-3. Instalação
-* Se usares o uv (conforme definido no teu Makefile):
+3. Instalação Local
+* Se optares por rodar o projeto fora do Docker, utiliza o uv através do comando:
 
 ```
-make install
+make install-local
 ```
 
 ## 🏃 Como Executar
+
 1. Localmente
 
 * Para iniciar o servidor em modo de desenvolvimento (com auto-reload):
 
 ```
+make run-local
+```
+* Nota: Este modo requer que a base de dados PostgreSQL esteja ativa (pode usar o comando docker compose up -d db para subir apenas o banco).
+
+2. Via Docker (Recomendado)
+
+* Este comando sobe a API e a Base de Dados PostgreSQL automaticamente em contentores isolados:
+
+```
 make run
 ```
-
-A API ficará disponível em: http://127.0.0.1:8000
-
-2. Via Docker
-
-* Se preferires usar contentores:
-
-```
-docker build -t api-recomendacao .
-docker run -p 8000:8000 --env-file .env api-recomendacao
-```
+* API disponível em: http://localhost:8000
+* Logs: O comando já inicia o acompanhamento dos logs do contentor.
 
 # 🧪 Testes
-Para garantir que tudo está a funcionar 
-corretamente:
+Para garantir que tudo está funcionando corretamente:
 
 ```
+# Testar dentro do contentor Docker
 make test
+
+# Testar no ambiente local
+make test-local
 ```
 
 ## 📖 Documentação da API
-Após iniciar o servidor, podes aceder à documentação interativa:
+Após iniciar o servidor, acesse a documentação interativa gerada pelo FastAPI:
 
 * Swagger UI: http://127.0.0.1:8000/docs
-
-* Redoc: http://127.0.0.1:8000/redoc
